@@ -58,43 +58,21 @@ export const getUploadUrl = async (
 };
 
 // 🔹 Obtenir l'URL de téléchargement d'un fichier avec polling court
-export const getDownloadUrl = async (fileId: string, maxAttempts = 5): Promise<string> => {
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    try {
-      const res = await fetch(`${BASE_URL}/files/${fileId}`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-        mode: 'cors',
-      });
-
-      if (res.status === 200) {
-        const data = await res.json();
-        console.log('✅ Download URL obtained after', attempt + 1, 'attempts');
-        return data.downloadUrl;
-      } else if (res.status === 425) {
-        // File not ready yet, wait and retry
-        const delay = 1000; // 1 seconde seulement
-        console.log(`🔄 File still uploading (${attempt + 1}/${maxAttempts}), retry in ${delay}ms...`);
-        
-        if (attempt < maxAttempts - 1) {
-          await new Promise(resolve => setTimeout(resolve, delay));
-          continue;
-        } else {
-          throw new Error('File upload taking too long - please try again in a moment');
-        }
-      } else {
-        const errorText = await res.text();
-        throw new Error(`Impossible de récupérer l'URL: ${res.status} ${errorText}`);
-      }
-    } catch (error) {
-      if (attempt === maxAttempts - 1) {
-        throw error;
-      }
-      await new Promise(resolve => setTimeout(resolve, 1000));
-    }
-  }
+// 🔥 NOUVELLE FONCTION POUR TÉLÉCHARGEMENT DIRECT
+export const downloadFile = async (fileId: string): Promise<Blob> => {
+  console.log('📥 Direct download for fileId:', fileId);
   
-  throw new Error('Unexpected error');
+  const res = await fetch(`${BASE_URL}/download/${fileId}`, {
+    method: 'GET',
+    mode: 'cors',
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`Download failed: ${res.status} ${errorText}`);
+  }
+
+  return await res.blob();
 };
 
 // 🔹 Supprimer un fichier
